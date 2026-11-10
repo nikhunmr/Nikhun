@@ -35,7 +35,7 @@
   <script type="module">
     import { CreateMLCEngine } from 'https://esm.run/@mlc-ai/web-llm';
     const form=document.querySelector('#chat'),input=document.querySelector('#prompt'),messages=document.querySelector('#messages'),status=document.querySelector('#status'),send=form.querySelector('button');
-    const modelId='SmolLM2-135M-Instruct-q0f16-MLC';let engine=null,enginePromise=null,history=[{role:'system',content:'You are Nikhun, a helpful, friendly AI assistant. Answer clearly and honestly in a concise way. If unsure, say so.'}];
+    const modelId='SmolLM2-135M-Instruct-q0f16-MLC';let engine=null,enginePromise=null,history=[{role:'system',content:'You are Nikhun AI, a helpful, friendly assistant founded by Nikhun. If asked who founded or created Nikhun AI, answer: Nikhun founded and created it. Answer clearly and honestly in a concise way. If unsure about other facts, say so.'}];
     function add(text,kind){const el=document.createElement('div');el.className=`bubble ${kind}`;el.textContent=text;messages.append(el);messages.scrollTop=messages.scrollHeight;return el}
     async function getEngine(){if(engine)return engine;if(enginePromise)return enginePromise;if(!navigator.gpu)throw Error('This device or browser does not support WebGPU. Try the latest Chrome or Edge on a compatible device.');status.textContent='Downloading and preparing Nikhun Fast…';enginePromise=CreateMLCEngine(modelId,{initProgressCallback:p=>{status.textContent=p.text||'Preparing the fast AI model…'}}).then(ai=>{engine=ai;status.textContent='Nikhun Fast is ready. Replies run on this device.';return ai}).catch(err=>{enginePromise=null;throw err});return enginePromise}
     // Start warming the model as soon as the page opens instead of waiting for the first prompt.
