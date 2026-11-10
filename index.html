@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#111827">
+  <meta name="description" content="Nikhun — a private AI assistant that runs in your browser.">
+  <title>Nikhun — Private AI</title>
+  <style>
+    :root{color-scheme:dark;--bg:#0b1020;--panel:#111a2d;--muted:#9aa9c2;--line:#26344d;--accent:#9b8cff;--text:#f2f5fb}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -20%,#29244f 0,transparent 55%),var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;min-height:100vh;display:flex;flex-direction:column}
+    header{height:72px;border-bottom:1px solid #ffffff12;display:flex;align-items:center;justify-content:space-between;padding:0 max(22px,calc((100vw - 980px)/2))}
+    .brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:19px;letter-spacing:.2px}.logo{width:34px;height:34px;border-radius:12px;background:linear-gradient(140deg,#b8aaff,#7361ed);display:grid;place-items:center;color:#15112f;font-weight:900}
+    .privacy{font-size:12px;color:#c9c2ff;border:1px solid #6555bb66;background:#a798ff12;border-radius:30px;padding:7px 11px}
+    main{width:min(820px,100%);margin:0 auto;flex:1;display:flex;flex-direction:column;padding:56px 22px 18px}
+    .intro{text-align:center;margin:0 auto 30px;max-width:600px}.intro h1{font-size:clamp(32px,6vw,50px);line-height:1.08;letter-spacing:-1.6px;margin:0 0 13px}.intro h1 span{color:#b2a6ff}.intro p{color:var(--muted);font-size:16px;margin:0}
+    #status{margin:0 auto 20px;text-align:center;color:#c7bbff;font-size:12px;min-height:20px}
+    #messages{flex:1;min-height:200px;max-height:52vh;overflow:auto;display:flex;flex-direction:column;gap:14px;padding:3px 0 18px;scrollbar-color:#36415c transparent}
+    .bubble{max-width:min(82%,650px);padding:14px 17px;border-radius:19px;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 8px 24px #0002}.bot{align-self:flex-start;background:#141e33;border:1px solid #ffffff10}.user{align-self:flex-end;background:#7563e8;color:white;border-bottom-right-radius:6px}
+    .composer{border:1px solid #34425c;background:#111a2dcc;border-radius:22px;padding:9px;display:flex;align-items:flex-end;gap:10px;box-shadow:0 18px 50px #0004}.composer:focus-within{border-color:#8c7aff}
+    textarea{font:inherit;resize:none;flex:1;min-height:42px;max-height:140px;background:transparent;border:0;color:var(--text);outline:0;padding:11px 12px}.textarea::placeholder,textarea::placeholder{color:#75839c}
+    button{border:0;cursor:pointer;font:inherit}.send{height:42px;min-width:76px;padding:0 16px;border-radius:15px;background:#a99aff;color:#1a1532;font-weight:700}.send:hover{background:#c2b8ff}.send:disabled{opacity:.5;cursor:wait}
+    .hint{text-align:center;color:#7887a1;font-size:11px;margin:12px 0 20px}footer{text-align:center;padding:15px 20px 22px;color:#7887a1;font-size:12px}
+    @media(max-width:560px){header{height:62px;padding:0 17px}main{padding:38px 16px 8px}.intro{margin-bottom:24px}.intro p{font-size:14px}.bubble{max-width:92%}.privacy{font-size:11px}}
+  </style>
+</head>
+<body>
+  <header><div class="brand"><div class="logo">N</div><span>Nikhun</span></div><div class="privacy">✦ Runs privately on your device</div></header>
+  <main>
+    <section class="intro"><h1>Your own <span>AI assistant.</span></h1><p>Ask anything. Nikhun generates replies right in your browser, with no account or API key.</p></section>
+    <div id="status" role="status">The AI model downloads the first time you send a message.</div>
+    <section id="messages" aria-live="polite"><div class="bubble bot">Hi, I'm Nikhun. What can I help you with today?</div></section>
+    <form id="chat" class="composer"><textarea id="prompt" rows="1" placeholder="Message Nikhun…" aria-label="Message Nikhun"></textarea><button class="send" type="submit">Send ↑</button></form>
+    <div class="hint">Nikhun can make mistakes. Check important information.</div>
+  </main>
+  <footer>Private, on-device AI · No sign-up required</footer>
+  <script type="module">
+    import { CreateMLCEngine } from 'https://esm.run/@mlc-ai/web-llm';
+    const form=document.querySelector('#chat'),input=document.querySelector('#prompt'),messages=document.querySelector('#messages'),status=document.querySelector('#status'),send=form.querySelector('button');
+    const modelId='Qwen2.5-0.5B-Instruct-q4f16_1-MLC';let engine=null,history=[{role:'system',content:'You are Nikhun, a helpful, friendly AI assistant. Answer clearly and honestly. If unsure, say so.'}];
+    function add(text,kind){const el=document.createElement('div');el.className=`bubble ${kind}`;el.textContent=text;messages.append(el);messages.scrollTop=messages.scrollHeight;return el}
+    async function getEngine(){if(engine)return engine;if(!navigator.gpu)throw Error('This device or browser does not support WebGPU. Try the latest Chrome or Edge on a compatible device.');status.textContent='Downloading and preparing the AI model…';engine=await CreateMLCEngine(modelId,{initProgressCallback:p=>{status.textContent=p.text||'Preparing the AI model…'}});status.textContent='Nikhun is ready. Replies are generated on this device.';return engine}
+    form.addEventListener('submit',async e=>{e.preventDefault();const text=input.value.trim();if(!text)return;add(text,'user');input.value='';input.style.height='auto';history.push({role:'user',content:text});send.disabled=true;const reply=add('Thinking…','bot');try{const ai=await getEngine();const result=await ai.chat.completions.create({messages:history,temperature:.7,max_tokens:512});const answer=result.choices?.[0]?.message?.content||'I could not create a reply. Please try again.';reply.textContent=answer;history.push({role:'assistant',content:answer})}catch(err){reply.textContent=`I couldn't start the AI model: ${err.message}`;history.pop();engine=null;status.textContent='Could not load the model. Check your connection and browser support, then try again.'}finally{send.disabled=false;input.focus();messages.scrollTop=messages.scrollHeight}});
+    input.addEventListener('input',()=>{input.style.height='auto';input.style.height=Math.min(input.scrollHeight,140)+'px'});
+    input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();form.requestSubmit()}});
+  </script>
+</body>
+</html>
